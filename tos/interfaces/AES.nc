@@ -66,4 +66,21 @@ interface AES{
      *  @param out_block the resulting block of plaintext.
      */
     command void decrypt(uint8_t *in_block, uint8_t *expkey, uint8_t *out_block);
+
+    // sandesh added
+    /**
+     *  Encrypt multiple blocks of plaintext using CBC.
+     *  @param in_block the input block of plaintext.
+     *  @param expkey an array that contains the expanded key.
+     *  @param out_block the resulting block of ciphertext.
+     */
+    command void CBC_encrypt(uint8_t *in_block, uint8_t *expkey, uint8_t *out_block, uint32_t length, uint8_t *iv);
+
+    /**
+     *  Decrypt multiple blocks of plaintext using CBC.
+     *  @param in_block the input block of ciphertext.
+     *  @param expkey an array that contains the expanded key.
+     *  @param out_block the resulting block of plaintext.
+     */
+    command void CBC_decrypt(uint8_t *in_block, uint8_t *expkey, uint8_t *out_block, uint32_t length, uint8_t *iv);
 }

@@ -9,6 +9,8 @@
 
 #define lclPrintf			printfz1
 #define lclprintfUART_init		printfz1_init
+#define MSG_SIZE 16*7
+#define ENCRYPT_ENABLE 0
 
 module coordinatorBasicC 
 {
@@ -44,13 +46,18 @@ implementation
 
 	/**************************************************/
 	  /* Secret key */
-	  uint8_t K[32] =  {0x80,0x70,0x60,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+	  uint8_t K[KEY_SIZE] =  {0x00, 0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF};
+	  // KEY_SIZE = 16 is defined in AES.h
+
+	  uint8_t IV[KEY_SIZE] =  {0x01,0x12,0x23,0x34,0x45,0x56,0x67,0x78,0x89,0x98,0x87,0x76,0x65,0x54,0x43,0x32};
 
 	  /* Array to store the expanded key */
 	  uint8_t exp[240];
 
 	  /* Ciphertext blocks. */
-	    uint8_t dec[16];
+	    uint8_t dec[MSG_SIZE];
+
+	    uint8_t count = 0;
 
   /**************************************************/
 
@@ -215,20 +222,41 @@ implementation
 	{
 		uint8_t packetCode = Nsdu[0];
 		uint8_t letter1 = Nsdu[1];
+		uint8_t j;
+
 		// TDBS mechanism
 		beacon_scheduling *beacon_scheduling_ptr;
-
 		lclPrintf("NLDE_DATA.indication\n", "");
-		printfz1("C: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",Nsdu[0],Nsdu[1],Nsdu[2],Nsdu[3],Nsdu[4],Nsdu[5],Nsdu[6],Nsdu[7],Nsdu[8],Nsdu[9],Nsdu[10],Nsdu[11],Nsdu[12],Nsdu[13],Nsdu[14],Nsdu[15]);
-      
+
+		// printfz1("Cipher: ");
+  //       for(j = 0; j < MSG_SIZE; j++){
+  //           printfz1("%2x ",Nsdu[j]);
+  //       }
+  //       printfz1("\n\n");
+		
       /**************************************************/
         /* First block decryption */
-        call AES.decrypt(Nsdu,exp,dec);
-      printfz1("D: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n\n",dec[0],dec[1],dec[2],dec[3],dec[4],dec[5],dec[6],dec[7],dec[8],dec[9],dec[10],dec[11],dec[12],dec[13],dec[14],dec[15]);
+        if(ENCRYPT_ENABLE){
+        	printfz1("%d: Coordinator receiving encrypted msg from end device ----------\n", count);
+        	call AES.CBC_decrypt(Nsdu,exp,dec, MSG_SIZE, IV);
+			printfz1("Message: ");
+	        for(j = 0; j < MSG_SIZE; j++){
+	            printfz1("%c",dec[j]);
+	        }
+	        printfz1("\n\n");
+        }else{
+        	printfz1("%d: Coordinator receiving msg from end device ----------\n", count);
+        	printfz1("Message: ");
+	        for(j = 0; j < MSG_SIZE; j++){
+	            printfz1("%c",Nsdu[j]);
+	        }
+	        printfz1("\n\n");
+        }
+
+        count++;
+
+
       /**************************************************/
-		lclPrintf("%c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c\n", dec[0], dec[1], dec[2], dec[3], dec[4], dec[5],
-					dec[6], dec[7], dec[8], dec[9], dec[10], dec[11],
-					dec[12], dec[13], dec[14], dec[15]);
 
 		call Leds.led0Toggle();
 		

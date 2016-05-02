@@ -1,11 +1,11 @@
 <tos_image>
   <ident>
-    <uidhash>422888EBL</uidhash>
+    <uidhash>C74989DAL</uidhash>
     <hostname>instant-contiki</hostname>
     <username>user</username>
     <appname>TestAES</appname>
     <userhash>22A1FF22L</userhash>
-    <timestamp>56E2E891L</timestamp>
+    <timestamp>5726AB92L</timestamp>
     <deluge_support>no</deluge_support>
     <platform>z1</platform>
   </ident>

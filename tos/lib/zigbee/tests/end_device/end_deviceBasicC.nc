@@ -10,6 +10,8 @@
 
 #define lclPrintf			printfz1
 #define lclprintfUART_init		printfz1_init
+#define MSG_SIZE 16*7
+#define ENCRYPT_ENABLE 0
 
 module end_deviceBasicC 
 {
@@ -54,14 +56,18 @@ implementation
 	//sandesh added
 	/**************************************************/
 	  /* Secret key */
-	  uint8_t K[32] =  {0x80,0x70,0x60,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+	  uint8_t K[KEY_SIZE] =  {0x00, 0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF};
+	  // KEY_SIZE = 16 is defined in AES.h
+	  uint8_t IV[KEY_SIZE] =  {0x01,0x12,0x23,0x34,0x45,0x56,0x67,0x78,0x89,0x98,0x87,0x76,0x65,0x54,0x43,0x32};
 
 	  /* Array to store the expanded key */
 	  uint8_t exp[240];
 
 	  /* Ciphertext blocks.*/
-	  uint8_t cip[16];
-	  uint8_t dec[16];
+	  uint8_t cip[MSG_SIZE];
+	  uint8_t dec[MSG_SIZE];
+
+	  uint8_t count = 0;
 
 	/**************************************************/
 
@@ -71,38 +77,61 @@ implementation
 	task void KeepAlive()
 	{
 		// uint8_t nsdu_pay[6];
-		uint8_t nsdu_pay[16] = {'H', 'e','l','l','o',' ','W','o','r','l','d','!','!','!','!','!'};
-		lclPrintf("Sending message to coordinator\n");
+		uint8_t j;
+		uint8_t msg[16*10] = 	{	'0', '1', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+                                  	'0', '2', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+                              		'0', '3', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+                          			'0', '4', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+		                          	'0', '5', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+		                      		'0', '6', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+		                  			'0', '7', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+		              				'0', '8', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+		          					'0', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' ',
+		    						'1', '0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', ' '};
+		uint8_t * nsdu_pay = msg;
+		uint8_t * msgToSend;
 
-		// nsdu_pay[0]=TOS_NODE_ID & 0x00FF;
-		// nsdu_pay[1]='H';
-		// nsdu_pay[2]='e';
-		// nsdu_pay[3]='l';
-		// nsdu_pay[4]='l';
-		// nsdu_pay[5]='o';
 
+		
 		// Send the message towards the coordinator 
 		// (default network address: 0x0000)
 		call Leds.led0Toggle();
-		lclPrintf("%c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c\n", nsdu_pay[0], nsdu_pay[1], nsdu_pay[2], nsdu_pay[3], nsdu_pay[4], nsdu_pay[5],
-				nsdu_pay[6], nsdu_pay[7], nsdu_pay[8], nsdu_pay[9], nsdu_pay[10],
-				nsdu_pay[11], nsdu_pay[12], nsdu_pay[13], nsdu_pay[14], nsdu_pay[15]);
+
+		if(ENCRYPT_ENABLE){
+			lclPrintf("%d: End Device sending encrypted msg to coordinator ----------\n", count);
+	        /* First block encryption*/
+	        call AES.CBC_encrypt(nsdu_pay,exp,cip, MSG_SIZE, IV);
+	        msgToSend = cip;
+		}else{
+			lclPrintf("%d: End Device sending msg to coordinator ----------\n", count);
+			msgToSend = nsdu_pay;
+		}
+
+		printfz1("Message: ");
+        for(j = 0; j < MSG_SIZE; j++){
+            printfz1("%c",nsdu_pay[j]);
+        }
+        printfz1("\n\n");
+
+        count++;
 		
-		/**************************************************/
-      /* Print plain text */
-        lclPrintf("P: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",nsdu_pay[0],nsdu_pay[1],nsdu_pay[2],nsdu_pay[3],nsdu_pay[4],nsdu_pay[5],nsdu_pay[6],nsdu_pay[7],nsdu_pay[8],nsdu_pay[9],nsdu_pay[10],nsdu_pay[11],nsdu_pay[12],nsdu_pay[13],nsdu_pay[14],nsdu_pay[15]);
-
-        /* First block encryption*/
-        call AES.encrypt(nsdu_pay,exp,cip);
-        lclPrintf("C: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",cip[0],cip[1],cip[2],cip[3],cip[4],cip[5],cip[6],cip[7],cip[8],cip[9],cip[10],cip[11],cip[12],cip[13],cip[14],cip[15]);
-
-        /* First block decryption */
-        call AES.decrypt(cip,exp,dec);
-        lclPrintf("D: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n\n",dec[0],dec[1],dec[2],dec[3],dec[4],dec[5],dec[6],dec[7],dec[8],dec[9],dec[10],dec[11],dec[12],dec[13],dec[14],dec[15]);
+        // printfz1("Cipher: ");
+        // for(j = 0; j < MSG_SIZE; j++){
+        //     printfz1("%02x ",cip[j]);
+        // }
+        // printfz1("\n\n");
+       
+        // /* First block decryption */
+        // call AES.CBC_decrypt(cip,exp,dec, MSG_SIZE, IV);
+        // printfz1("Decipher: ");
+        // for(j = 0; j < MSG_SIZE; j++){
+        //     printfz1("%c",dec[j]);
+        // }
+        // printfz1("\n\n");
 
       /**************************************************/
 
-		call NLDE_DATA.request(0x0000, 16, cip, 0, 1, 0x00, 0);
+		call NLDE_DATA.request(0x0000, MSG_SIZE, msgToSend, 0, 1, 0x00, 0);
 		call Leds.led0Toggle();
 	}
   

@@ -345,4 +345,37 @@ implementation{
             out_block[i] = state[i];
         }
     }
+
+    void XOR(uint8_t *input, uint8_t *val){
+        uint8_t i;
+        for(i = 0; i < KEY_SIZE; i++){
+            input[i] ^= val[i];
+        }
+    }
+
+    command void AES.CBC_encrypt(uint8_t *in_block, uint8_t *expkey, uint8_t *out_block, uint32_t length, uint8_t *iv){
+        uint8_t i;
+        uint8_t input[KEY_SIZE];
+        uint8_t *prev = iv;
+        for(i = 0; i < length; i += KEY_SIZE){
+            memcpy(input, in_block, KEY_SIZE);
+            XOR(input, prev);
+            call AES.encrypt(input, expkey, out_block);
+            prev = out_block;
+            in_block += KEY_SIZE;
+            out_block += KEY_SIZE;
+        }
+    }
+
+    command void AES.CBC_decrypt(uint8_t *in_block, uint8_t *expkey, uint8_t *out_block, uint32_t length, uint8_t *iv){
+        uint8_t i;
+        uint8_t *prev = iv;
+        for(i = 0; i < length; i += KEY_SIZE){
+            call AES.decrypt(in_block, expkey, out_block);
+            XOR(out_block, prev);
+            prev = in_block;
+            in_block += KEY_SIZE;
+            out_block += KEY_SIZE;
+        }
+    }
 }
